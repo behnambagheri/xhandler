@@ -120,7 +120,7 @@ xlogs() {
     else
       grep -v 'api -> api\|\[api]\|rejected' *.$mDATE-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > "$mDATE".xlog
   fi
-  
+
 
   for server in ${SERVERS[@]}; do
       rm "$DEFAULT_DIRECTORY"/"$server"."$mDATE"-log
@@ -147,7 +147,7 @@ done
 
 
 
-PARSED_ARGUMENTS=$(getopt -a -n xhandler -o e:lcs --long env-file,stats,logs,config,shit,: -- "$@")
+PARSED_ARGUMENTS=$(getopt -a -n xhandler -o e:lcs --long env-file,stats,logs,config,shit: -- "$@")
 VALID_ARGUMENTS=$?
 if [ "$VALID_ARGUMENTS" != "0" ]; then
   usage
