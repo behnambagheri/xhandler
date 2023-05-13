@@ -128,7 +128,7 @@ xlogs() {
 
 
   for server in ${SERVERS[@]}; do
-      ssh "$server" 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray/access.log'
+      ssh "$server" 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray'
   done
 
 
