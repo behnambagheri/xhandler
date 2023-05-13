@@ -116,9 +116,9 @@ xlogs() {
   done
 
   if [[ -e "$mDATE".xlog ]]; then
-      grep -a -v 'api -> api\|\[api]\|rejected' *."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 >> "$mDATE".xlog
+      grep -a -v 'api -> api\|\[api]\|rejected' ./*."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 >> "$mDATE".xlog
     else
-      grep -a -v 'api -> api\|\[api]\|rejected' *."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > "$mDATE".xlog
+      grep -a -v 'api -> api\|\[api]\|rejected' ./*."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > "$mDATE".xlog
   fi
 
 
