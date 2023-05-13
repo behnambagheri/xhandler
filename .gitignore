@@ -5,3 +5,4 @@ uuid.txt
 xstats.full
 *.tmp
 test.sh
+config.json
