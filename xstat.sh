@@ -26,7 +26,7 @@ cd "$DEFAULT_DIRECTORY" || exit 0
 for server in "${SERVERS[@]}"; do
   echo -e "server: $server"
 
- ssh "$server" '/usr/local/bin/v2ctl api --server=127.0.0.1:10085 StatsService.QueryStats "reset: false"' \
+ ssh "$server" '/usr/local/bin/v2ctl api --server=127.0.0.1:10085 StatsService.QueryStats "reset: true"' \
     | awk '{
         if (match($1, /name:/)) {
             f=1; gsub(/^"|link"$/, "", $2);
