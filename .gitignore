@@ -1,0 +1,7 @@
+.env
+*.xlog
+*.archive
+./uuid.txt
+./xstats.full
+*.tmp
+test.sh

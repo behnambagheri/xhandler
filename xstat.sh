@@ -1,36 +1,32 @@
 #!/bin/bash
 
-xstats_dir=$HOME/xhandler/bitmax
-full_stats=xstats.full
-if [ -e full_stats ]; then
-    last_stats=$(cat $full_stats)
-else
-    last_stats=false
-fi
+# Set some default values:
+ENV_FILE="unset"
+USERS="unset"
+SERVERS="unset"
+DEFAULT_DIRECTORY="unset"
+TEMP_USAGE_FILE="unset"
+CONFIG_FILE="unset"
+USAGE_ARCHIVE="unset"
+FULL_STATS="unset"
 
-servers=(
-  server1
-  server2
-  server3
-)
-
-
-users=(
-  public
-)
-
-config_file=config.json
+usage()
+{
+  echo "Usage: xhandler [ -e | --env-file .env ]"
+  exit 2
+}
 
 xstats(){
 get_xstats() {
 
-cd $xstats_dir || exit 0
+cd "$DEFAULT_DIRECTORY" || exit 0
 
 
 
-for server in ${servers[@]}; do
+for server in "${SERVERS[@]}"; do
+  echo -e "server: $server"
 
- ssh $server '/usr/local/bin/v2ctl api --server=127.0.0.1:10085 StatsService.QueryStats "reset: true"' \
+ ssh "$server" '/usr/local/bin/v2ctl api --server=127.0.0.1:10085 StatsService.QueryStats "reset: false"' \
     | awk '{
         if (match($1, /name:/)) {
             f=1; gsub(/^"|link"$/, "", $2);
@@ -51,28 +47,30 @@ done
 
 collect_data(){
 
-rm -f /tmp/usage.tmp
-get_xstats > /tmp/usage.tmp
-if [ -e ./usage.old ]; then
-    cat ./usage.old >> /tmp/usage.tmp
+rm -f $TEMP_USAGE_FILE
+get_xstats > $TEMP_USAGE_FILE
+if [ -e $USAGE_ARCHIVE ]; then
+    cat $USAGE_ARCHIVE >> $TEMP_USAGE_FILE
 fi
 
 
 
 
+rm -f $FULL_STATS &> /dev/null
+for user in "${USERS[@]}"; do
 
-for user in ${users[@]}; do
+    local up down tot_up tot_down
 
-    up=$(cat /tmp/usage.tmp | grep -E "${user}.*up" | awk '{print $2}')
+    up=$(grep -E "${user}.*up" "$TEMP_USAGE_FILE" | awk '{print $2}')
     tot_up=0
     for i in ${up[@]}; do
-        tot_up=$(($i+$tot_up))
+        tot_up=$((i+tot_up))
     done
 
-    down=$(cat /tmp/usage.tmp | grep -E "${user}.*down" | awk '{print $2}')
+    down=$(grep -E "${user}.*down" "$TEMP_USAGE_FILE" | awk '{print $2}')
     tot_down=0
     for i in ${down[@]}; do
-        tot_down=$(($i+$tot_down))
+        tot_down=$((i+tot_down))
     done
 
 
@@ -83,11 +81,11 @@ for user in ${users[@]}; do
 
 
     echo "USER: $user | UP: $tot_up | DOWN: $tot_down" \
-        | numfmt --field=5,8 --suffix=B --to=iec | tr -s " " >> xstats.full
+        | numfmt --field=5,8 --suffix=B --to=iec | tr -s " " >> $FULL_STATS
 
 done
 
-cp /tmp/usage.tmp ./usage.old
+cp $TEMP_USAGE_FILE $USAGE_ARCHIVE
 
 
 }
@@ -103,30 +101,29 @@ collect_data
 xlogs() {
 
 
-xlog_dir=$HOME/xhandler/bitmax/
-mDATE=$(date +%F)
+  local mDATE
+  #xlog_dir=$HOME/xhandler/bitmax/
+  mDATE=$(date +%F)
 
 
-cd $xlog_dir
+  cd "$DEFAULT_DIRECTORY" || exit
 
 
-for server in ${servers[@]}; do
-    scp $server:/var/log/v2ray/access.log $server.$mDATE-log
-    sleep 1
-done
+  for server in ${SERVERS[@]}; do
+      scp $server:/var/log/v2ray/access.log $server.$mDATE-log
+      sleep 1
+  done
 
-grep -v 'api -> api\|\[api]\|rejected' *.$mDATE-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > $mDATE.xlog
+  grep -v 'api -> api\|\[api]\|rejected' *.$mDATE-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > $mDATE.xlog
 
-echo 6
-for server in ${servers[@]}; do
-    rm $xlog_dir/$server.$mDATE-log
-done
+  for server in ${SERVERS[@]}; do
+      rm $DEFAULT_DIRECTORY/$server.$mDATE-log
+  done
 
-echo 7
 
-for server in ${servers[@]}; do
-    ssh $server 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray/access.log'
-done
+  for server in ${SERVERS[@]}; do
+      ssh $server 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray/access.log'
+  done
 
 
 
@@ -135,36 +132,45 @@ done
 update_config(){
 
 
-for server in ${servers[@]}; do
-    scp $config_file $server:/usr/local/etc/v2ray/config.json
+for server in ${SERVERS[@]}; do
+    scp $CONFIG_FILE $server:/usr/local/etc/v2ray/config.json
     ssh $server 'systemctl restart v2ray'
 done
 
 }
 
-case $1 in
-    xlog)
-        xlogs
-        ;;
-    xstat)
-        xstats
-        ;;
-    config)
-        xstats
-        sleep 5
-        update_config
-        ;;
-    "")
-        echo error
-        exit 1
-        ;;
-    *)
-        echo error
-        exit 1
-        ;;
-esac
 
 
+PARSED_ARGUMENTS=$(getopt -a -n xhandler -o e:lcs --long env-file,stats,logs,config,shit,: -- "$@")
+VALID_ARGUMENTS=$?
+if [ "$VALID_ARGUMENTS" != "0" ]; then
+  usage
+fi
 
 
+source_env(){
+  local ENV_FILE
+  ENV_FILE=$1
+  echo "$1"
+  # shellcheck source=./.env.example
+  source "$ENV_FILE"
+}
+
+#echo "PARSED_ARGUMENTS is $PARSED_ARGUMENTS"
+eval set -- "$PARSED_ARGUMENTS"
+while :
+do
+  case "$1" in
+    -e | --env-file)   source_env "$2"   ; shift 2 ;;
+    -s | --stats) xstats ; shift ;;
+    -l | --logs) xlogs ; shift ;;
+    -c | --config) xstats ; sleep 5 ; update_config ; shift ;;
+    # -- means the end of the arguments; drop this, and break out of the while loop
+    --) shift; break ;;
+    # If invalid options were passed, then getopt should have reported an error,
+    # which we checked as VALID_ARGUMENTS when getopt was called...
+    *) echo "Unexpected option: $1 - this should not happen."
+       usage ;;
+  esac
+done
 
