@@ -63,13 +63,16 @@ for user in "${USERS[@]}"; do
     local up down tot_up tot_down
 
     up=$(grep -E "${user}.*up" "$TEMP_USAGE_FILE" | awk '{print $2}')
+
     tot_up=0
+    # shellcheck disable=SC2068
     for i in ${up[@]}; do
-        tot_up=$((i+tot_up))
-    done
+  tot_up=$((i + tot_up))
+done
 
     down=$(grep -E "${user}.*down" "$TEMP_USAGE_FILE" | awk '{print $2}')
     tot_down=0
+    # shellcheck disable=SC2068
     for i in ${down[@]}; do
         tot_down=$((i+tot_down))
     done
@@ -110,24 +113,24 @@ xlogs() {
   cd "$DEFAULT_DIRECTORY" || exit
 
 
-  for server in ${SERVERS[@]}; do
+  for server in "${SERVERS[@]}"; do
       scp "$server":/var/log/v2ray/access.log "$server"."$mDATE"-log
       sleep 1
   done
 
   if [[ -e "$mDATE".xlog ]]; then
-      grep -a -v 'api -> api\|\[api]\|rejected' *."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 >> "$mDATE".xlog
+      grep -a -v 'api -> api\|\[api]\|rejected' ./*."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 >> "$mDATE".xlog
     else
-      grep -a -v 'api -> api\|\[api]\|rejected' *."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > "$mDATE".xlog
+      grep -a -v 'api -> api\|\[api]\|rejected' ./*."$mDATE"-log | sed  's/log:/log : /g' | sed -e "s/${mDATE}-log//g" | sed -e "s/. :/ :/g" | sort -u  -k3 > "$mDATE".xlog
   fi
 
 
-  for server in ${SERVERS[@]}; do
+  for server in "${SERVERS[@]}"; do
       rm "$DEFAULT_DIRECTORY"/"$server"."$mDATE"-log
   done
 
 
-  for server in ${SERVERS[@]}; do
+  for server in "${SERVERS[@]}"; do
       ssh "$server" 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray'
   done
 
@@ -138,7 +141,7 @@ xlogs() {
 update_config(){
 
 
-for server in ${SERVERS[@]}; do
+for server in "${SERVERS[@]}"; do
     scp $CONFIG_FILE "$server":/usr/local/etc/v2ray/config.json
     ssh "$server" 'systemctl restart v2ray'
 done
