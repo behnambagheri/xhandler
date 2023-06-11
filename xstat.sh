@@ -111,7 +111,7 @@ xlogs() {
 
 
   for server in ${SERVERS[@]}; do
-      scp "$server":/var/log/v2ray/access.log "$server"."$mDATE"-log
+      scp -O "$server":/var/log/v2ray/access.log "$server"."$mDATE"-log
       sleep 1
   done
 
