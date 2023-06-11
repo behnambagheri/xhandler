@@ -144,7 +144,7 @@ update_config(){
 
 
 for server in "${SERVERS[@]}"; do
-    scp $CONFIG_FILE "$server":/usr/local/etc/v2ray/config.json
+    scp -O $CONFIG_FILE "$server":/usr/local/etc/v2ray/config.json
     ssh "$server" 'systemctl restart v2ray'
 done
 
