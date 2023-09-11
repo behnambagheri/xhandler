@@ -133,7 +133,7 @@ xlogs() {
 
 
   for server in "${SERVERS[@]}"; do
-      ssh "$server" 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && echo "" > /var/log/v2ray/access.log && chown -R nobody:nobody /var/log/v2ray'
+      ssh "$server" 'cp /var/log/v2ray/access.log /var/log/v2ray/access.log-$mDATE && truncate -s 0 /var/log/v2ray/access.log && chmod -R 777 /var/log/v2ray'
   done
 
 
